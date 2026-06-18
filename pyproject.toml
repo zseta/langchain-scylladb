@@ -1,0 +1,17 @@
+[project]
+name = "langchain-scylladb-monorepo"
+description = "LangChain ScyllaDB mono-repo"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "langchain-scylladb",
+    "langgraph-checkpoint-scylladb",
+]
+
+[tool.uv.sources]
+langchain-scylladb = { path = "libs/langchain-scylladb", editable = true }
+langgraph-checkpoint-scylladb = { path = "libs/langgraph-checkpoint-scylladb", editable = true }
