@@ -1,0 +1,44 @@
+[project]
+name = "langchain-scylladb"
+version = "0.1.0"
+description = "LangChain VectorStore integration for ScyllaDB"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Attila Toth", email = "attila.toth@scylladb.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "langchain-core>=1.4.3",
+    "langchain>=0.3",
+    "numpy>=1.26",
+    "scylla-driver>=3.29.10",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/scylladb/langchain-scylladb"
+"Source" = "https://github.com/scylladb/langchain-scylladb/tree/main/libs/langchain-scylladb"
+"Issues" = "https://github.com/scylladb/langchain-scylladb/issues"
+"PyPI" = "https://pypi.org/project/langchain-scylladb/"
+
+[build-system]
+requires = ["uv_build>=0.11.16,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "langchain-tests>=1.1.9",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+    "python-dotenv>=1.2.2",
+    "ruff>=0.15.16",
+    "testcontainers>=4.9.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+log_format = "%(asctime)s.%(msecs)03d %(levelname)s [%(module)s:%(lineno)s]: %(message)s"
+log_level = "DEBUG"
+log_date_format = "%Y-%m-%d %H:%M:%S"
+xfail_strict = true
+addopts = "-rf"
