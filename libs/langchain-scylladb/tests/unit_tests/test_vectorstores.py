@@ -79,7 +79,6 @@ def test_default_attributes() -> None:
     assert store._keyspace == "langchain_scylladb"
     assert store._table_name == "documents"
     assert store._similarity_function == "COSINE"
-    assert store._index_delay == 1.5
     assert store._embedding_dimension == 8  # FakeEmbeddings.dim
 
 
@@ -88,12 +87,10 @@ def test_custom_attributes() -> None:
         keyspace="my_ks",
         table_name="my_tbl",
         similarity_function="EUCLIDEAN",
-        index_delay=0.0,
     )
     assert store._keyspace == "my_ks"
     assert store._table_name == "my_tbl"
     assert store._similarity_function == "EUCLIDEAN"
-    assert store._index_delay == 0.0
 
 
 def test_owns_cluster_when_no_session_provided() -> None:

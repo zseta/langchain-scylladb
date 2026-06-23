@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import time
 import uuid
 from typing import Any, Callable, Iterable, Optional
 
@@ -74,8 +73,6 @@ class ScyllaDBVectorStore(VectorStore):
             Detected automatically from the embedding model if *None*.
         similarity_function: One of ``COSINE`` (default), ``DOT_PRODUCT``,
             or ``EUCLIDEAN``.
-        index_delay: Seconds to wait after writes to allow the HNSW index to
-            catch up via CDC (default 1.5).  Set to 0 to disable.
     """
 
     def __init__(
@@ -92,7 +89,6 @@ class ScyllaDBVectorStore(VectorStore):
         local_dc: Optional[str] = None,
         embedding_dimension: Optional[int] = None,
         similarity_function: str = "COSINE",
-        index_delay: float = 1.5,
     ) -> None:
         if similarity_function not in _SIMILARITY_FUNCTIONS:
             raise ValueError(
@@ -105,7 +101,6 @@ class ScyllaDBVectorStore(VectorStore):
         self._table_name = table_name
         self._similarity_function = similarity_function
         self._score_fn = _SIMILARITY_SCORE_FN[similarity_function]
-        self._index_delay = index_delay
 
         # Detect embedding dimension lazily if not provided
         if embedding_dimension is None:
@@ -124,9 +119,6 @@ class ScyllaDBVectorStore(VectorStore):
             self._session = session
 
         self._setup_schema()
-        # Give the vector-store sidecar time to register the new HNSW index.
-        if self._index_delay > 0:
-            time.sleep(self._index_delay)
 
     # ------------------------------------------------------------------
     # Schema helpers
@@ -228,11 +220,6 @@ class ScyllaDBVectorStore(VectorStore):
                 (doc_id, text, json.dumps(meta), list(vector)),
             )
 
-        # ScyllaDB's HNSW vector index propagates through CDC asynchronously.
-        # Wait briefly so that immediately-following ANN queries see the new rows.
-        if self._index_delay > 0:
-            time.sleep(self._index_delay)
-
         return ids
 
     def delete(self, ids: Optional[list[str]] = None, **kwargs: Any) -> Optional[bool]:
@@ -253,17 +240,12 @@ class ScyllaDBVectorStore(VectorStore):
                 f"DROP TABLE IF EXISTS {self._keyspace}.{self._table_name}"
             )
             self._setup_schema()
-            if self._index_delay > 0:
-                time.sleep(self._index_delay)
             return True
         delete_stmt = self._session.prepare(
             f"DELETE FROM {self._keyspace}.{self._table_name} WHERE id = ?"
         )
         for doc_id in ids:
             self._session.execute(delete_stmt, (doc_id,))
-
-        if self._index_delay > 0:
-            time.sleep(self._index_delay)
 
         return True
 
@@ -319,35 +301,8 @@ class ScyllaDBVectorStore(VectorStore):
                 ),
                 (list(embedding), list(embedding)),
             )
-        except InvalidRequest as _e:
-            err = str(_e)
-            if "missing index" in err:
-                # The vector-store sidecar hasn't registered the newly-created
-                # HNSW index yet.  Retry a few times before giving up.
-                for _retry in range(10):
-                    time.sleep(2.0)
-                    try:
-                        rows = self._session.execute(
-                            SimpleStatement(
-                                f"""
-                    SELECT id, content, metadata,
-                           {self._score_fn}(embedding, %s) AS score
-                    FROM {self._keyspace}.{self._table_name}
-                    ORDER BY embedding ANN OF %s
-                    LIMIT {fetch_k}
-                    """
-                            ),
-                            (list(embedding), list(embedding)),
-                        )
-                        break  # success
-                    except InvalidRequest as _e2:
-                        if "missing index" not in str(_e2) or _retry == 9:
-                            return []
-                else:
-                    return []
-            else:
-                # ANN query on an empty table raises InvalidRequest.
-                return []
+        except InvalidRequest:
+            return []
         results: list[tuple[Document, float]] = []
         for row in rows:
             meta = json.loads(row.metadata)

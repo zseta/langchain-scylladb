@@ -1,12 +1,17 @@
 """Integration tests for ScyllaDBCache."""
 from __future__ import annotations
 
+import time
+
 import pytest
 from cassandra.cluster import Cluster, ExecutionProfile, EXEC_PROFILE_DEFAULT
 from cassandra.policies import DCAwareRoundRobinPolicy
 from langchain_core.outputs import Generation
 
 from langchain_scylladb.cache import ScyllaDBCache
+
+
+_INDEX_VISIBILITY_DELAY = 2.0
 
 
 @pytest.fixture()
@@ -42,6 +47,7 @@ def test_exact_cache_write_then_read(session) -> None:
 
     gens = [Generation(text="answer")]
     cache.update("prompt1", "llm1", gens)
+    time.sleep(_INDEX_VISIBILITY_DELAY)
     result = cache.lookup("prompt1", "llm1")
 
     assert result is not None
