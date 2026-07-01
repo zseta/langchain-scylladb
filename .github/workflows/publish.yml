@@ -22,6 +22,7 @@ jobs:
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/langchain-scylladb-')) ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.package == 'langchain-scylladb')
     runs-on: ubuntu-24.04
+    environment: pypi
     permissions:
       id-token: write  # required for PyPI Trusted Publishing
       contents: read
@@ -48,6 +49,7 @@ jobs:
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/langgraph-checkpoint-scylladb-')) ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.package == 'langgraph-checkpoint-scylladb')
     runs-on: ubuntu-24.04
+    environment: pypi
     permissions:
       id-token: write  # required for PyPI Trusted Publishing
       contents: read
